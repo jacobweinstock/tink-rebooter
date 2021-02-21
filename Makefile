@@ -11,3 +11,18 @@ build: ## complie for linux
 .PHONY: image
 image: ## build the container image
 	docker build -t tink-rebooter:local . 
+
+.PHONY: lint
+lint:  ## run linting
+	@echo be sure golangci-lint is installed: https://golangci-lint.run/usage/install/
+	golangci-lint run
+
+.PHONY: goimports
+goimports: ## run goimports
+	@echo be sure goimports is installed
+	goimports -w ./
+
+.PHONY: goimports-check
+goimports-check: ## run goimports displaying diffs
+	@echo be sure goimports is installed
+	goimports -d . | (! grep .)

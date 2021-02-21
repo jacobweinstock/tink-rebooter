@@ -31,7 +31,7 @@ func main() {
 	if d != nil {
 		return
 	}
-	defer cntxt.Release()
+	defer cntxt.Release() // nolint
 
 	log.Print("- - - - - - - - - - - - - - -")
 	log.Print("tink-reboot started")
