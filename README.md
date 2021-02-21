@@ -4,7 +4,7 @@ Reboot Action for Tinkerbell
 ```yaml
 actions:
 - name: "reboot"
-  image: ghcr.io/jacobweinstock/tink-rebooter:v0.2.1
+  image: ghcr.io/jacobweinstock/tink-rebooter:v0.2.2
   timeout: 90
   pid: host
   volumes:
