@@ -40,9 +40,12 @@ func main() {
 }
 
 func doReboot() {
+	log.Println("waiting 10 seconds before rebooting...")
 	time.Sleep(10 * time.Second)
+	log.Println("rebooting...")
 	syscall.Sync()
 	if err := syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART); err != nil {
 		log.Fatal(err)
 	}
+	log.Println("reboot called")
 }
