@@ -1,42 +1,114 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"syscall"
 	"time"
 
+	"github.com/kardianos/service"
 	"github.com/sevlyar/go-daemon"
 )
 
 const name = "tink-reboot"
 
-// To terminate the daemon use:
-//  kill `cat tink-reboot`
+type program struct{}
+
+func (p *program) Start(s service.Service) error {
+	// Start should not block. Do the actual work async.
+	go p.run()
+	return nil
+}
+func (p *program) run() {
+	doReboot()
+}
+func (p *program) Stop(s service.Service) error {
+	// Stop should not block. Return with a few seconds.
+	return nil
+}
+
+const customSysVinit = `#!/sbin/openrc-run
+
+name="$SVCNAME"
+command="/usr/sbin/$SVCNAME"
+command_args="-daemon"
+pidfile="/var/run/$SVCNAME.pid"
+`
+
 func main() {
-	cntxt := &daemon.Context{
-		PidFileName: fmt.Sprintf("%v.pid", name),
-		PidFilePerm: 0644,
-		LogFileName: fmt.Sprintf("%v.log", name),
-		LogFilePerm: 0640,
-		WorkDir:     "./",
-		Umask:       027,
-		Args:        []string{name},
+	installFlag := flag.Bool("install", false, "install the system service.")
+	uninstallFlag := flag.Bool("uninstall", false, "uninstall the system service.")
+	startFlag := flag.Bool("start", false, "start the system service.")
+	daemonFlag := flag.Bool("daemon", false, "run the daemon.")
+
+	flag.Parse()
+	svcConfig := &service.Config{
+		Name:        name,
+		DisplayName: "Tinkerbell reboot action",
+		Description: "Tinkerbell reboot action",
+		Option: service.KeyValue{
+			"SysvScript": customSysVinit,
+			"Restart":    "on-failure",
+		},
 	}
 
-	d, err := cntxt.Reborn()
+	prg := &program{}
+	s, err := service.New(prg, svcConfig)
 	if err != nil {
-		log.Fatal("Unable to run: ", err)
+		log.Fatal(err)
 	}
-	if d != nil {
+
+	if *installFlag {
+		err = s.Install()
+		if err != nil {
+			log.Fatal(err)
+		}
 		return
 	}
-	defer cntxt.Release() // nolint
+	if *uninstallFlag {
+		err = s.Uninstall()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
-	log.Print("- - - - - - - - - - - - - - -")
-	log.Print("tink-reboot started")
+	if *startFlag {
+		err = s.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
-	doReboot()
+	if *daemonFlag {
+		cntxt := &daemon.Context{
+			PidFileName: fmt.Sprintf("%v.pid", name),
+			PidFilePerm: 0644,
+			LogFileName: fmt.Sprintf("%v.log", name),
+			LogFilePerm: 0640,
+			WorkDir:     "./",
+			Umask:       027,
+			Args:        []string{name},
+		}
+
+		d, err := cntxt.Reborn()
+		if err != nil {
+			log.Fatal("Unable to run: ", err)
+		}
+		if d != nil {
+			return
+		}
+		defer cntxt.Release() // nolint
+
+		log.Print("- - - - - - - - - - - - - - -")
+		log.Print("tink-reboot started")
+
+		doReboot()
+	} else {
+		doReboot()
+	}
 }
 
 func doReboot() {
