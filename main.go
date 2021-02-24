@@ -104,11 +104,9 @@ func main() {
 
 		log.Print("- - - - - - - - - - - - - - -")
 		log.Print("tink-reboot started")
-
-		doReboot()
-	} else {
-		doReboot()
 	}
+	doReboot()
+
 }
 
 func doReboot() {
